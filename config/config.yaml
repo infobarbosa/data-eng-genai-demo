@@ -4,7 +4,7 @@ spark:
 
 catalog:
   clientes:
-    path: "data/input/dataset-json-clientes/data/clientes.json"
+    path: "data/input/dataset-json-clientes/data/clientes.json.gz"
     format: "json"
   pedidos:
     path: "data/input/datasets-csv-pedidos/data/pedidos"
