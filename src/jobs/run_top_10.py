@@ -1,6 +1,7 @@
-"""Modulo de orquestracao do pipeline Top 10 Clientes."""
+"""Modulo de orquestracao do pipeline Top 10 Clientes (sem frameworks)."""
 
 import logging
+from typing import Any, Dict, List
 
 from src.data_io.data_io_manager import DataIOManager
 from src.transforms.vendas_transforms import VendasTransforms
@@ -20,31 +21,49 @@ class RunTop10Job:
 
         # 1. Leitura dos dados
         self._logger.info("Etapa 1: Leitura dos dados de pedidos e clientes.")
-        pedidos_df = self._data_io.ler("pedidos_bronze")
-        clientes_df = self._data_io.ler("clientes_bronze")
+        pedidos = self._data_io.ler("pedidos_bronze")
+        clientes = self._data_io.ler("clientes_bronze")
 
         # 2. Calcular valor total por pedido
         self._logger.info("Etapa 2: Calculando valor total por pedido.")
-        pedidos_com_total = VendasTransforms.calcular_valor_total(pedidos_df)
+        pedidos_com_total = VendasTransforms.calcular_valor_total(pedidos)
 
         # 3. Agregar por cliente
         self._logger.info("Etapa 3: Agregando valores por cliente.")
-        agregado_df = VendasTransforms.agregar_por_cliente(pedidos_com_total)
+        agregado = VendasTransforms.agregar_por_cliente(pedidos_com_total)
 
         # 4. Rankear top N
         self._logger.info("Etapa 4: Rankeando top %d clientes.", self._top_n)
-        ranking_df = VendasTransforms.rankear_top_n(agregado_df, self._top_n)
+        ranking = VendasTransforms.rankear_top_n(agregado, self._top_n)
 
         # 5. Enriquecer com dados de clientes
         self._logger.info("Etapa 5: Enriquecendo ranking com dados de clientes.")
-        resultado_df = VendasTransforms.enriquecer_com_clientes(ranking_df, clientes_df)
+        resultado = VendasTransforms.enriquecer_com_clientes(ranking, clientes)
 
         # 6. Exibir resultado
         self._logger.info("Resultado final - Top %d Clientes:", self._top_n)
-        resultado_df.show(truncate=False)
+        self._exibir_resultado(resultado)
 
         # 7. Salvar resultado
         self._logger.info("Etapa 6: Salvando resultado.")
-        self._data_io.escrever(resultado_df, "top_10_clientes")
+        self._data_io.escrever(resultado, "top_10_clientes")
 
         self._logger.info("Pipeline Top %d Clientes concluido com sucesso!", self._top_n)
+
+    def _exibir_resultado(self, dados: List[Dict[str, Any]]) -> None:
+        """Exibe o resultado no formato tabular no log."""
+        if not dados:
+            self._logger.info("Nenhum resultado para exibir.")
+            return
+
+        colunas = list(dados[0].keys())
+        header = " | ".join(f"{col:>15}" for col in colunas)
+        separador = "-" * len(header)
+
+        self._logger.info(separador)
+        self._logger.info(header)
+        self._logger.info(separador)
+        for registro in dados:
+            linha = " | ".join(f"{str(registro.get(col, '')):>15}" for col in colunas)
+            self._logger.info(linha)
+        self._logger.info(separador)

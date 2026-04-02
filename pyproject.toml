@@ -4,13 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "top10-clientes-pipeline"
-version = "0.1.0"
-description = "Pipeline PySpark para identificar os Top 10 Clientes por volume de compras"
+version = "0.2.0"
+description = "Pipeline Python puro para identificar os Top 10 Clientes por volume de compras (sem frameworks)"
 requires-python = ">=3.9"
-dependencies = [
-    "pyspark>=3.5.0",
-    "pyyaml>=6.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [

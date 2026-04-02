@@ -15,7 +15,7 @@ catalogo:
       inferSchema: "true"
   top_10_clientes:
     caminho: "data/output/top_10_clientes"
-    formato: "parquet"
+    formato: "csv"
     modo: "overwrite"
 
 pipeline:
