@@ -9,7 +9,7 @@ data:
 catalog:
   clientes_bronze:
     format: "json"
-    path: "dataset-json-clientes/data/clientes.json"
+    path: "dataset-json-clientes/data/clientes.json.gz"
     description: "Dados brutos de clientes em JSON Lines"
   pedidos_bronze:
     format: "csv"

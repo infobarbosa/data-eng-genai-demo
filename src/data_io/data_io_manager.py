@@ -63,11 +63,12 @@ class DataIOManager:
         return output_file
 
     def _read_json(self, path: str) -> pd.DataFrame:
-        """Le um arquivo JSON Lines."""
+        """Le um arquivo JSON Lines (suporta .json e .json.gz)."""
         if not os.path.exists(path):
             raise DataIOError(f"Arquivo JSON nao encontrado: {path}")
         try:
-            df = pd.read_json(path, lines=True)
+            compression = "gzip" if path.endswith(".gz") else "infer"
+            df = pd.read_json(path, lines=True, compression=compression)
             self._logger.info("JSON carregado com %d registros.", len(df))
             return df
         except Exception as e:
@@ -85,7 +86,10 @@ class DataIOManager:
         if csv_path.is_file():
             files = [str(csv_path)]
         elif csv_path.is_dir():
-            files = sorted(glob.glob(str(csv_path / "*.csv")))
+            files = sorted(
+                glob.glob(str(csv_path / "*.csv"))
+                + glob.glob(str(csv_path / "*.csv.gz"))
+            )
         else:
             raise DataIOError(f"Caminho CSV nao encontrado: {path}")
 
