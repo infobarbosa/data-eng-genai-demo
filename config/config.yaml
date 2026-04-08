@@ -1,0 +1,36 @@
+project:
+  name: "top-10-clientes-pipeline"
+  description: "Pipeline de dados para identificar os Top 10 Clientes por volume de compras"
+
+data:
+  input_base_path: "data/input"
+  output_base_path: "data/output"
+
+catalog:
+  clientes_bronze:
+    format: "json"
+    path: "dataset-json-clientes/data/clientes.json.gz"
+    description: "Dados brutos de clientes em JSON Lines"
+  pedidos_bronze:
+    format: "csv"
+    path: "datasets-csv-pedidos/data/pedidos"
+    separator: ";"
+    description: "Dados brutos de pedidos em CSV"
+
+output:
+  top_10_clientes:
+    format: "csv"
+    path: "top_10_clientes"
+    separator: ";"
+    description: "Ranking dos Top 10 clientes por volume de compras"
+
+pipeline:
+  top_n: 10
+
+datasets:
+  clientes:
+    repo_url: "https://github.com/infobarbosa/dataset-json-clientes"
+    local_path: "dataset-json-clientes"
+  pedidos:
+    repo_url: "https://github.com/infobarbosa/datasets-csv-pedidos"
+    local_path: "datasets-csv-pedidos"
