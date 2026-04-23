@@ -1,96 +1,236 @@
-
 # AGENTS.md
 
 ## 1. Persona e Contexto
 
-Você é um **Engenheiro de Dados Sênior** especialista em Apache Spark e Clean Architecture. Seu objetivo é construir um pipeline de dados em PySpark que identifique os **Top 10 Clientes** de um e-commerce por volume total de compras.
+Você é um **Engenheiro de Dados Sênior** especialista em Apache Spark e Clean Architecture. Seu objetivo é construir um pipeline de dados em PySpark que identifique os **Top 10 Clientes** de um e-commerce por volume total de compras, seguindo rigorosamente os princípios definidos neste documento.
 
-## 2. Princípios Arquiteturais (Mandatórios)
+---
 
-* **Paradigma:** Orientação a Objetos (POO).
-* **Clean Architecture:** Separação total entre lógica de configuração, I/O (leitura/escrita), lógica de transformação e lógica de transformação.
-* **Injeção de Dependência:** O script `main.py` deve atuar como o *Composition Root*, instanciando e injetando as dependências (SparkManager, DataIOManager) nos jobs.
-* **Config-Driven:** NENHUM caminho de arquivo ou parâmetro deve estar "hardcoded". Utilize o arquivo localizado em **`config/config.yaml`** (na raiz, fora da `src/`).
+## 2. Requisitos de Ambiente
 
-## 3. Estrutura de Pastas Esperada
+* **Python:** >= 3.10
+* **PySpark:** >= 3.5
+* **Dependências de desenvolvimento:** `pytest`, `black`, `flake8`
+* **Dependências de runtime:** `pyspark`, `pyyaml`
+
+---
+
+## 3. Princípios Arquiteturais (Mandatórios)
+
+* **Paradigma:** Orientação a Objetos (POO) com uso obrigatório de **type hints** em todas as funções e métodos.
+* **Clean Architecture:** Separação total entre lógica de configuração, I/O (leitura/escrita), transformação e orquestração. Nenhuma camada deve conhecer os detalhes internos de outra.
+* **Injeção de Dependência:** O script `main.py` deve atuar como o *Composition Root*, instanciando e injetando as dependências (`SparkManager`, `DataIOManager`) nos jobs. Jobs **nunca** criam suas próprias dependências.
+* **Config-Driven:** NENHUM caminho de arquivo, parâmetro de Spark ou constante de negócio deve estar "hardcoded". Utilize exclusivamente o arquivo **`config/config.yaml`** (na raiz, fora da `src/`).
+* **Strategy Pattern no I/O:** O `DataIOManager` deve depender de uma abstração (`DataReader` ABC) com implementações concretas por formato (`JsonReader`, `CsvReader`). Nunca use `if/elif` de formato diretamente no manager.
+
+---
+
+## 4. Estrutura de Pastas Esperada
 
 ```text
 .
-├── config/             # Configuração (RAIZ)
-│   └── config.yaml
-├── src/                # Código-fonte da aplicação
-│   ├── core/           # ConfigLoader e Exceções customizadas
-│   ├── utils/          # SparkManager (Factory) e LoggingSetup
-│   ├── data_io/        # DataIOManager (Strategy Pattern)
-│   ├── transforms/     # Lógica pura de transformação (Top 10)
-│   ├── jobs/           # Orquestração do pipeline (run_top_10.py)
-│   └── main.py         # Ponto de entrada da aplicação
-├── tests/              # Testes unitários com pytest
-├── pyproject.toml      # Gestão de dependências e metadados
-└── Makefile            # Automação local (lint, test, package)
-
-```
-
-## 4. Requisitos de Implementação
-
-* **Localização da Configuração:** O módulo `core/config.py` deve buscar o arquivo em `../config/config.yaml` (relativo à sua execução em `src/`) ou via caminho absoluto definido na raiz.
-* **I/O Abstraído:** O job deve solicitar dados por IDs lógicos (ex: `"pedidos_bronze"`) e o `DataIOManager` deve resolver o caminho físico via catálogo.
-* **Transformações Puras:** A classe em `transforms/` deve conter funções que recebem DataFrames e retornam DataFrames, garantindo testabilidade total sem necessidade de SparkSession ativa para lógica de negócio.
-
-## 5. Qualidade e Automação Local
-
-* **Testes:** Criar `tests/test_vendas_transforms.py`. Use `spark.createDataFrame` para gerar dados sintéticos e validar a lógica de agregação e o ranking.
-* **Makefile:** Fornecer comandos para:
-* `make lint`: Executar `black` e `flake8`.
-* `make test`: Executar `pytest`.
-* `make package`: Gerar o arquivo `.whl` na pasta `dist/`.
-
-
-## 6. Arquivos de Exemplo
-Você deve utilizar dois arquivos de exemplo: `clientes` e `pedidos`.
-
-### `clientes.csv`
-```sh
-git clone https://github.com/infobarbosa/dataset-json-clientes ./data/input/dataset-json-clientes
-
-```
-O conteúdo desse arquivo está estruturado da seguinte forma:
-```
-./data/input/dataset-json-clientes/data/clientes.json
-```
-
-Sample desse arquivo:
-```
-{"id": 1, "nome": "Isabel Abreu", "data_nasc": "1982-10-26", "cpf": "512.084.739-05", "email": "isabel.abreusigycp@outlook.com", "interesses": ["Filmes"], "carteira_investimentos": {"FIIs": 11533.69, "CDB": 26677.01}}
-{"id": 2, "nome": "Natália Ramos", "data_nasc": "1971-04-26", "cpf": "780.369.125-03", "email": "natalia.ramosrzmyqb@hotmail.com", "interesses": ["Viagens"], "carteira_investimentos": {}}
-{"id": 3, "nome": "Larissa Garcia", "data_nasc": "2006-12-03", "cpf": "608.275.134-53", "email": "larissa.garciaviennn@outlook.com", "interesses": ["Livros"], "carteira_investimentos": {}}
-{"id": 4, "nome": "Milena Freitas", "data_nasc": "2007-09-07", "cpf": "674.158.392-00", "email": "milena.freitasrgsswy@gmail.com", "interesses": ["Astronomia", "Lazer", "Religião"], "carteira_investimentos": {}}
-{"id": 5, "nome": "Caleb Gonçalves", "data_nasc": "1989-06-05", "cpf": "703.465.219-80", "email": "caleb.goncalveslkcgfn@gmail.com", "interesses": ["Astronomia", "Música"], "carteira_investimentos": {"CDB": 13423.81, "Criptomoedas": 45986.93}}
-```
-
-### `pedidos.csv`
-```sh
-git clone https://github.com/infobarbosa/datasets-csv-pedidos ./data/input/datasets-csv-pedidos
-
-```
-
-O conteúdo dos arquivos está estruturado da seguinte forma:
-```
-./data/input/datasets-csv-pedidos/data/pedidos/pedidos-2026-01.csv
-```
-
-Sample desse arquivo:
-```
-ID_PEDIDO;PRODUTO;VALOR_UNITARIO;QUANTIDADE;DATA_CRIACAO;UF;ID_CLIENTE
-f198e8f7-033d-414d-b032-20975e84edde;LIQUIDIFICADOR;300.0;1;2026-01-05T18:36:28;MG;8409
-97969db5-9304-4b80-b19e-3a9d60ce6520;CELULAR;1000.0;3;2026-01-01T11:58:48;DF;934
-f1db6c7e-0701-42fd-90b2-638b57cefe38;NOTEBOOK;1500.0;2;2026-01-17T15:28:57;MG;5872
-3994d9fa-6609-4818-8efa-c3a570a6116a;GELADEIRA;2000.0;1;2026-01-27T13:37:31;MA;174
+├── config/
+│   └── config.yaml                  # Catálogo de fontes e parâmetros
+├── data/
+│   ├── input/
+│   │   ├── dataset-json-clientes/   # Clonado via git
+│   │   └── datasets-csv-pedidos/    # Clonado via git
+│   └── output/
+│       └── top_10_clientes/         # Resultado final em Parquet
+├── src/
+│   ├── core/
+│   │   ├── config.py                # ConfigLoader
+│   │   └── exceptions.py            # Exceções customizadas
+│   ├── utils/
+│   │   ├── spark_manager.py         # SparkManager (Factory)
+│   │   └── logging_setup.py         # Configuração de logging
+│   ├── data_io/
+│   │   ├── base.py                  # ABC DataReader
+│   │   ├── json_reader.py           # JsonReader
+│   │   ├── csv_reader.py            # CsvReader
+│   │   └── data_io_manager.py       # DataIOManager (Strategy)
+│   ├── transforms/
+│   │   └── top10_transforms.py      # Funções puras de transformação
+│   ├── jobs/
+│   │   └── run_top_10.py            # Orquestrador do pipeline
+│   └── main.py                      # Composition Root / entry point
+├── tests/
+│   └── test_vendas_transforms.py    # Testes unitários com pytest
+├── pyproject.toml                   # Dependências e metadados
+└── Makefile                         # Automação: lint, test, package
 ```
 
 ---
 
-## 7. Definição de Pronto (DoP)
+## 5. Estrutura Obrigatória do `config/config.yaml`
 
-O código completo deve ser entregue dentro de `src/`, baixar os arquivos de exemplo para `/data/input`, carregar a configuração da pasta `config/` e executar o pipeline com sucesso, salvando o ranking final em `/data/output/top_10_clientes`.
+O arquivo deve seguir exatamente este esquema:
 
+```yaml
+spark:
+  app_name: top10-clientes
+  master: local[*]
+  config:
+    spark.sql.shuffle.partitions: "8"
+
+catalog:
+  clientes_bronze:
+    path: ../data/input/dataset-json-clientes/data/clientes.json
+    format: json
+  pedidos_bronze:
+    path: ../data/input/datasets-csv-pedidos/data/pedidos/
+    format: csv
+    options:
+      sep: ";"
+      header: "true"
+      inferSchema: "true"
+
+output:
+  top_10_clientes:
+    path: ../data/output/top_10_clientes
+    format: parquet
+    mode: overwrite
+
+business:
+  top_n: 10
+  ranking_tiebreaker: id_cliente   # critério de desempate: menor id_cliente primeiro
+```
+
+---
+
+## 6. Requisitos de Implementação
+
+### 6.1 ConfigLoader (`core/config.py`)
+* Busca o `config.yaml` pelo caminho absoluto resolvido a partir da raiz do projeto.
+* Lança `ConfigNotFoundError` se o arquivo não existir.
+* Expõe os valores via propriedades tipadas.
+
+### 6.2 Exceções Customizadas (`core/exceptions.py`)
+Definir ao menos:
+* `ConfigNotFoundError`
+* `DataReadError`
+* `TransformError`
+
+### 6.3 SparkManager (`utils/spark_manager.py`)
+* Factory que cria e retorna a `SparkSession` usando os parâmetros de `spark` do `config.yaml`.
+* Deve aplicar todas as chaves de `spark.config` dinamicamente.
+
+### 6.4 Logging (`utils/logging_setup.py`)
+* Usar o módulo `logging` padrão do Python.
+* Formato obrigatório: `%(asctime)s | %(levelname)s | %(name)s | %(message)s`
+* Nível padrão: `INFO`.
+* Cada etapa relevante do pipeline deve ser logada: início, fim, contagem de registros lidos/escritos e tempo de execução de cada transformação.
+
+### 6.5 DataIOManager e Strategy Pattern (`data_io/`)
+
+**`base.py`** — ABC obrigatória:
+```python
+from abc import ABC, abstractmethod
+from pyspark.sql import SparkSession, DataFrame
+
+class DataReader(ABC):
+    @abstractmethod
+    def read(self, spark: SparkSession, path: str, options: dict) -> DataFrame:
+        ...
+```
+
+**`json_reader.py`** e **`csv_reader.py`** — implementações concretas.
+
+**`data_io_manager.py`** — recebe `SparkSession` + `ConfigLoader`. O método `read(logical_id: str) -> DataFrame` resolve o formato no catálogo, instancia o reader correto e delega a leitura. O método `write(df: DataFrame, logical_id: str) -> None` escreve no caminho e formato do catálogo de output.
+
+### 6.6 Transformações Puras (`transforms/top10_transforms.py`)
+Funções independentes, sem efeitos colaterais, que recebem e retornam DataFrames:
+
+| Função | Entrada | Saída |
+|---|---|---|
+| `calcular_valor_total(df: DataFrame) -> DataFrame` | pedidos | pedidos + coluna `valor_total = VALOR_UNITARIO * QUANTIDADE` |
+| `agregar_por_cliente(df: DataFrame) -> DataFrame` | pedidos com `valor_total` | `id_cliente`, `total_compras` (soma) |
+| `enriquecer_com_nome(df_agg: DataFrame, df_clientes: DataFrame) -> DataFrame` | aggregado + clientes | adiciona coluna `nome` via **left join** em `id == id_cliente` |
+| `aplicar_ranking(df: DataFrame, top_n: int) -> DataFrame` | enriquecido | adiciona coluna `rank` (1-based), ordena por `total_compras` desc, desempate por `id_cliente` asc, limita a `top_n` |
+
+**Regras de negócio:**
+* Pedidos com `VALOR_UNITARIO` ou `QUANTIDADE` nulos devem ser **descartados** antes da agregação (logar contagem descartada).
+* O join entre pedidos e clientes é **left join**: clientes sem match aparecem com `nome = null` mas são mantidos no ranking.
+* Duplicatas em `ID_PEDIDO` devem ser removidas com `dropDuplicates(["ID_PEDIDO"])` antes de qualquer agregação.
+
+### 6.7 Schema do Output
+
+O arquivo final em `/data/output/top_10_clientes` deve conter exatamente estas colunas:
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `rank` | Integer | Posição no ranking (1 = maior comprador) |
+| `id_cliente` | Long | ID do cliente |
+| `nome` | String | Nome do cliente (pode ser null se sem match) |
+| `total_compras` | Double | Soma de `VALOR_UNITARIO * QUANTIDADE` |
+
+### 6.8 Leitura de Pedidos
+* Ler **todos os arquivos CSV** presentes na pasta `pedidos/`, não apenas um mês específico. O Spark lê o diretório inteiro automaticamente quando o path aponta para a pasta.
+
+---
+
+## 7. Qualidade e Automação Local
+
+### Testes (`tests/test_vendas_transforms.py`)
+Use `spark.createDataFrame` com dados sintéticos. Cobrir obrigatoriamente:
+
+1. `calcular_valor_total`: verificar que `valor_total = VALOR_UNITARIO * QUANTIDADE`.
+2. `agregar_por_cliente`: verificar soma correta por cliente.
+3. `aplicar_ranking`: verificar que o resultado tem no máximo `top_n` linhas, está ordenado corretamente e a coluna `rank` é sequencial a partir de 1.
+4. Caso de borda — **desempate**: dois clientes com mesmo `total_compras`; verificar que o de menor `id_cliente` recebe rank menor.
+5. Caso de borda — **nulos**: pedidos com `VALOR_UNITARIO = null` devem ser descartados antes da agregação.
+
+### Makefile
+```makefile
+make lint     # executa: black src/ tests/ && flake8 src/ tests/
+make test     # executa: pytest tests/ -v --tb=short
+make package  # executa: python -m build --wheel --outdir dist/
+```
+
+---
+
+## 8. Arquivos de Entrada
+
+Clonar os datasets antes de executar o pipeline:
+
+```sh
+git clone https://github.com/infobarbosa/dataset-json-clientes ./data/input/dataset-json-clientes
+git clone https://github.com/infobarbosa/datasets-csv-pedidos ./data/input/datasets-csv-pedidos
+```
+
+### Schema de `clientes.json`
+```
+./data/input/dataset-json-clientes/data/clientes.json
+```
+Formato: JSON Lines (um objeto por linha).
+```json
+{"id": 1, "nome": "Isabel Abreu", "data_nasc": "1982-10-26", "cpf": "512.084.739-05", "email": "isabel.abreusigycp@outlook.com", "interesses": ["Filmes"], "carteira_investimentos": {"FIIs": 11533.69, "CDB": 26677.01}}
+{"id": 2, "nome": "Natália Ramos", "data_nasc": "1971-04-26", "cpf": "780.369.125-03", "email": "natalia.ramosrzmyqb@hotmail.com", "interesses": ["Viagens"], "carteira_investimentos": {}}
+```
+Colunas relevantes para o pipeline: `id`, `nome`.
+
+### Schema de `pedidos-*.csv`
+```
+./data/input/datasets-csv-pedidos/data/pedidos/pedidos-2026-01.csv
+```
+Separador: `;` | Header: presente.
+```
+ID_PEDIDO;PRODUTO;VALOR_UNITARIO;QUANTIDADE;DATA_CRIACAO;UF;ID_CLIENTE
+f198e8f7-033d-414d-b032-20975e84edde;LIQUIDIFICADOR;300.0;1;2026-01-05T18:36:28;MG;8409
+97969db5-9304-4b80-b19e-3a9d60ce6520;CELULAR;1000.0;3;2026-01-01T11:58:48;DF;934
+```
+Colunas relevantes para o pipeline: `ID_PEDIDO`, `VALOR_UNITARIO`, `QUANTIDADE`, `ID_CLIENTE`.
+
+---
+
+## 9. Definição de Pronto (DoP)
+
+A entrega é considerada completa quando **todos** os critérios abaixo forem atendidos:
+
+- [ ] Estrutura de pastas idêntica à definida na seção 4.
+- [ ] `config/config.yaml` preenchido conforme seção 5, sem nenhum valor hardcoded no código.
+- [ ] `make lint` executa sem erros.
+- [ ] `make test` executa com todos os 5 casos de teste passando.
+- [ ] `python src/main.py` executa sem erros e grava o output em `data/output/top_10_clientes/`.
+- [ ] O arquivo de output contém exatamente as 4 colunas definidas na seção 6.7, com no máximo 10 linhas, ordenadas por `rank` crescente.
+- [ ] O log da execução exibe a contagem de registros lidos de cada fonte e o tempo de execução de cada transformação.
